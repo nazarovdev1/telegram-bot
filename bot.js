@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const ytdlp = require("yt-dlp-exec"); // yt-dlp-exec kutubxonasini import qilish
 const express = require("express");
+const ffmpegStatic = require("ffmpeg-static"); // ffmpeg-static paketini import qilish
 
 // Telegram botni token bilan ishga tushirish
 const bot = new Telegraf("7878015755:AAFhNg_aY25FxaXKEGSzHUGOcaa5_Zi_RIM");
@@ -47,7 +48,7 @@ const downloadYouTubeVideo = async (url, ctx) => {
 
     // Videoni yuklab olish uchun yt-dlp ni ishga tushirish
     // execPath opsiyasini to'g'ridan-to'g'ri /usr/local/bin/yt-dlp ga belgilash.
-    // Bu Render.com kabi Linux muhitlarida pip orqali o'rnatilgan yt-dlp ning odatiy joylashuvi.
+    // ffmpegPath ni ffmpeg-static paketidan olish.
     await ytdlp(
       url,
       {
@@ -56,6 +57,7 @@ const downloadYouTubeVideo = async (url, ctx) => {
       },
       {
         execPath: '/usr/local/bin/yt-dlp', // yt-dlp ning aniq PATH'ini ko'rsatish
+        ffmpegPath: ffmpegStatic, // ffmpeg-static tomonidan taqdim etilgan ffmpeg yo'lini ko'rsatish
       }
     );
 
