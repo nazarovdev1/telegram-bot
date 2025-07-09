@@ -46,8 +46,8 @@ const downloadYouTubeVideo = async (url, ctx) => {
     const outputPath = path.join(tempDir, `${Date.now()}.mp4`);
 
     // Videoni yuklab olish uchun yt-dlp ni ishga tushirish
-    // execPath opsiyasini 'yt-dlp' qilib belgilash orqali,
-    // yt-dlp-exec kutubxonasi yt-dlp ni tizim PATH'idan topishga majbur qilinadi.
+    // execPath opsiyasini to'g'ridan-to'g'ri /usr/local/bin/yt-dlp ga belgilash.
+    // Bu Render.com kabi Linux muhitlarida pip orqali o'rnatilgan yt-dlp ning odatiy joylashuvi.
     await ytdlp(
       url,
       {
@@ -55,7 +55,7 @@ const downloadYouTubeVideo = async (url, ctx) => {
         format: "best[ext=mp4]/best", // Eng yaxshi sifatli MP4 formatini tanlash
       },
       {
-        execPath: 'yt-dlp', // yt-dlp ni tizim PATH'idan qidirishni buyurish
+        execPath: '/usr/local/bin/yt-dlp', // yt-dlp ning aniq PATH'ini ko'rsatish
       }
     );
 
@@ -160,15 +160,34 @@ bot.on("text", async (ctx) => {
 
 // --- Express Server (Render.com yoki shunga o'xshash hosting uchun) ---
 const app = express();
-app.get("/", (req, res) => res.send("Bot ishlayapti")); // Serverni faol ushlab turish uchun oddiy endpoint
+// Webhook yo'li, bu yerga Telegram yangilanishlarni yuboradi
+const WEBHOOK_PATH = `/webhook/${bot.secretPathComponent()}`;
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const WEBHOOK_URL = process.env.WEBHOOK_URL; // Render.com da o'rnatiladigan muhit o'zgaruvchisi
+
+// Telegram webhook so'rovlarini tinglash
+app.use(bot.webhookCallback(WEBHOOK_PATH));
+
+// Serverni faol ushlab turish uchun oddiy endpoint
+app.get("/", (req, res) => res.send("Bot ishlayapti"));
+
+app.listen(PORT, async () => {
   console.log(`Server ishga tushdi: http://localhost:${PORT}`);
+  // Webhookni o'rnatish
+  if (!WEBHOOK_URL) {
+    console.error("Xato: WEBHOOK_URL muhit o'zgaruvchisi o'rnatilmagan. Iltimos, Render.com da WEBHOOK_URL ni botingizning asosiy URL manzili bilan sozlang (masalan, https://your-bot-name.onrender.com).");
+  } else {
+    try {
+      await bot.telegram.setWebhook(`${WEBHOOK_URL}${WEBHOOK_PATH}`);
+      console.log(`Webhook o'rnatildi: ${WEBHOOK_URL}${WEBHOOK_PATH}`);
+    } catch (error) {
+      console.error("Webhook o'rnatishda xato:", error);
+    }
+  }
 });
 
-// --- Botni ishga tushirish va o'chirish ---
-bot.launch();
-console.log("Telegram bot ishga tushdi.");
+// --- Botni ishga tushirish va o'chirish (Polling o'rniga webhook ishlatiladi) ---
+// bot.launch() o'rniga endi Express server webhookni tinglaydi
 
 // Botni to'xtatish uchun signallarni yoqish
 process.once("SIGINT", () => bot.stop("SIGINT"));
