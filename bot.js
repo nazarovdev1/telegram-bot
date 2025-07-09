@@ -53,7 +53,8 @@ const downloadYouTubeVideo = async (url, ctx) => {
       url,
       {
         output: outputPath, // Chiqish fayli yo'lini belgilash
-        format: "best[ext=mp4]/best", // Eng yaxshi sifatli MP4 formatini tanlash
+        // format: "best[ext=mp4]/best", // Eng yaxshi sifatli MP4 formatini tanlash
+        format: "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]" // Eng yaxshi sifatli MP4 formatini tanlash
       },
       {
         // execPath: '/usr/local/bin/yt-dlp', // BU QATOR OLIB TASHLANDI
