@@ -89,6 +89,7 @@ const fs = require("fs");
 const path = require("path");
 const ytdlp = require("yt-dlp-exec");
 
+
 const bot = new Telegraf("7878015755:AAFhNg_aY25FxaXKEGSzHUGOcaa5_Zi_RIM"); // <-- TOKENINGIZNI BU YERGA QO'YING
 
 const tempDir = path.join(__dirname, 'temp');
@@ -191,6 +192,14 @@ bot.on("text", async (ctx) => {
     ctx.reply("❌ Iltimos, YouTube yoki TikTok video linkini yuboring.");
   }
 });
+const express = require("express");
+const app = express();
+app.get("/", (req, res) => res.send("Bot ishlayapti"));
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server ishga tushdi");
+});
+
+bot.start((ctx) => ctx.reply("Salom!"));
 
 bot.launch();
 process.once("SIGINT", () => bot.stop("SIGINT"));
