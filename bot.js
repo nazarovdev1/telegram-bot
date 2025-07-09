@@ -175,13 +175,16 @@ app.get("/", (req, res) => res.send("Bot ishlayapti"));
 
 app.listen(PORT, async () => {
   console.log(`Server ishga tushdi: http://localhost:${PORT}`);
+  console.log(`WEBHOOK_URL qiymati: ${WEBHOOK_URL}`); // WEBHOOK_URL ni tekshirish uchun log
+
   // Webhookni o'rnatish
   if (!WEBHOOK_URL) {
     console.error("Xato: WEBHOOK_URL muhit o'zgaruvchisi o'rnatilmagan. Iltimos, Render.com da WEBHOOK_URL ni botingizning asosiy URL manzili bilan sozlang (masalan, https://your-bot-name.onrender.com).");
   } else {
     try {
-      await bot.telegram.setWebhook(`${WEBHOOK_URL}${WEBHOOK_PATH}`);
+      const webhookInfo = await bot.telegram.setWebhook(`${WEBHOOK_URL}${WEBHOOK_PATH}`);
       console.log(`Webhook o'rnatildi: ${WEBHOOK_URL}${WEBHOOK_PATH}`);
+      console.log("Webhook o'rnatish natijasi:", webhookInfo); // Webhook o'rnatish natijasini loglash
     } catch (error) {
       console.error("Webhook o'rnatishda xato:", error);
     }
