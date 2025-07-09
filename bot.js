@@ -162,6 +162,9 @@ bot.on("text", async (ctx) => {
 
 // --- Express Server (Render.com yoki shunga o'xshash hosting uchun) ---
 const app = express();
+// Telegramdan kelgan JSON so'rov tanasini tahlil qilish uchun middleware
+app.use(express.json()); // BU QATOR QO'SHILDI
+
 // Webhook yo'li, bu yerga Telegram yangilanishlarni yuboradi
 const WEBHOOK_PATH = `/webhook/${bot.secretPathComponent()}`;
 const PORT = process.env.PORT || 3000;
