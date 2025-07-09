@@ -1,88 +1,3 @@
-// const { Telegraf } = require("telegraf");
-// const axios = require("axios");
-
-// const bot = new Telegraf("7878015755:AAFhNg_aY25FxaXKEGSzHUGOcaa5_Zi_RIM"); // o‘zingizning token
-
-// const resolveRedirect = async (shortUrl) => {
-//   try {
-//     const response = await axios.head(shortUrl, {
-//       maxRedirects: 0,
-//       validateStatus: (status) => status >= 200 && status < 400
-//     });
-
-//     if (response.headers.location) {
-//       return response.headers.location;
-//     }
-//     return shortUrl;
-//   } catch (error) {
-//     if (error.response && error.response.headers.location) {
-//       return error.response.headers.location;
-//     }
-//     console.error("Redirect error:", error.message);
-//     return shortUrl;
-//   }
-// };
-
-// bot.start((ctx) => ctx.reply("🎬 TikTok link yuboring."));
-
-// bot.on("text", async (ctx) => {
-//   let link = ctx.message.text.trim();
-
-//   // Skip processing if it's a command
-//   if (link.startsWith('/')) return;
-
-//   if (link.includes("tiktok.com")) {
-//     if (link.includes("vt.tiktok.com") || link.includes("vm.tiktok.com")) {
-//       try {
-//         link = await resolveRedirect(link);
-//         console.log("🔗 To‘liq TikTok link:", link);
-//       } catch (e) {
-//         console.error("Redirect error:", e.message);
-//         return ctx.reply("⚠️ Redirectda xatolik. Linkni tekshirib qayta urinib ko'ring.");
-//       }
-//     }
-
-//     try {
-//       const response = await axios.get("https://tiktok-video-no-watermark2.p.rapidapi.com/", {
-//         params: { url: link, hd: 1 },
-//         headers: {
-//           'X-RapidAPI-Key': '55c1142c8dmshe3642fb6859f937p104c2ejsnac67748d4751',
-//           'X-RapidAPI-Host': 'tiktok-video-no-watermark2.p.rapidapi.com'
-//         },
-//         timeout: 10000
-//       });
-
-//       console.log("API Response:", response.data);
-
-//       // Extract video URL from different possible response structures
-//       const videoUrl =
-//         response.data?.data?.play ||
-//         response.data?.data?.hdplay ||
-//         response.data?.data?.download_addr ||
-//         response.data?.video ||
-//         response.data?.url;
-
-//       console.log("🎥 Video URL:", videoUrl);
-
-//       if (videoUrl && /^https?:\/\//.test(videoUrl)) {
-//         await ctx.replyWithVideo(videoUrl);
-//       } else {
-//         ctx.reply("❌ Video topilmadi. API javobi o'zgarganga o'xshaydi.");
-//       }
-//     } catch (error) {
-//       console.error("❌ API xatolik:", error.response?.data || error.message);
-//       ctx.reply("⚠️ Yuklab bo‘lmadi. API ishlamayapti yoki noto‘g‘ri link.");
-//     }
-//   } else {
-//     ctx.reply("Iltimos, faqat TikTok link yuboring (tiktok.com, vt.tiktok.com, vm.tiktok.com).");
-//   }
-// });
-
-// bot.launch();
-
-// // Handle process termination gracefully
-// process.once('SIGINT', () => bot.stop('SIGINT'));
-// process.once('SIGTERM', () => bot.stop('SIGTERM'));
 const { Telegraf } = require("telegraf");
 const axios = require("axios");
 const fs = require("fs");
@@ -130,13 +45,9 @@ const downloadYouTubeVideo = async (url, ctx) => {
     const processingMsg = await ctx.reply("⏳ YouTube videoni yuklab olish boshlandi...");
     const outputPath = path.join(tempDir, `${Date.now()}.mp4`);
 
-    // Operatsion tizimga qarab yt-dlp ijro etuvchi fayl nomini aniqlash
-    const isWindows = process.platform === "win32";
-    const ytDlpPath = path.join(__dirname, "bin", isWindows ? "yt-dlp.exe" : "yt-dlp");
-
     // Videoni yuklab olish uchun yt-dlp ni ishga tushirish
-    // execPath yt-dlp-exec funksiyasiga uchinchi argument sifatida uzatiladi,
-    // bu kutubxonani sozlash uchun xos bo'lib, yt-dlp ning o'ziga buyruq qatori argumenti emas.
+    // execPath opsiyasini 'yt-dlp' qilib belgilash orqali,
+    // yt-dlp-exec kutubxonasi yt-dlp ni tizim PATH'idan topishga majbur qilinadi.
     await ytdlp(
       url,
       {
@@ -144,7 +55,7 @@ const downloadYouTubeVideo = async (url, ctx) => {
         format: "best[ext=mp4]/best", // Eng yaxshi sifatli MP4 formatini tanlash
       },
       {
-        execPath: ytDlpPath, // Ijro etuvchi fayl yo'lini yt-dlp-exec ga to'g'ri uzatish
+        execPath: 'yt-dlp', // yt-dlp ni tizim PATH'idan qidirishni buyurish
       }
     );
 
