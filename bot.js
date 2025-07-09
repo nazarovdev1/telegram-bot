@@ -47,8 +47,8 @@ const downloadYouTubeVideo = async (url, ctx) => {
     const outputPath = path.join(tempDir, `${Date.now()}.mp4`);
 
     // Videoni yuklab olish uchun yt-dlp ni ishga tushirish
-    // execPath opsiyasini to'g'ridan-to'g'ri /usr/local/bin/yt-dlp ga belgilash.
-    // ffmpegPath ni ffmpeg-static paketidan olish.
+    // execPath opsiyasini butunlay olib tashladik.
+    // yt-dlp-exec endi yt-dlp ni tizim PATH'idan topishga harakat qiladi.
     await ytdlp(
       url,
       {
@@ -56,7 +56,7 @@ const downloadYouTubeVideo = async (url, ctx) => {
         format: "best[ext=mp4]/best", // Eng yaxshi sifatli MP4 formatini tanlash
       },
       {
-        execPath: '/usr/local/bin/yt-dlp', // yt-dlp ning aniq PATH'ini ko'rsatish
+        // execPath: '/usr/local/bin/yt-dlp', // BU QATOR OLIB TASHLANDI
         ffmpegPath: ffmpegStatic, // ffmpeg-static tomonidan taqdim etilgan ffmpeg yo'lini ko'rsatish
       }
     );
