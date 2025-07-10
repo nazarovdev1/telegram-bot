@@ -218,6 +218,8 @@ if (!fs.existsSync(tempDir)) {
 
 /**
  * TikTok qisqa havolasini to'liq havolaga o'tkazadi.
+ * @param {string} shortUrl - Qisqa TikTok havolasi.
+ * @returns {Promise<string>} To'liq TikTok havolasi.
  */
 const resolveRedirect = async (shortUrl) => {
   try {
@@ -232,7 +234,101 @@ const resolveRedirect = async (shortUrl) => {
 }
 
 /**
- * YouTube video ID ni ajratib olish
+ * RapidAPI yordamida YouTube videoni yuklab oladi.
+ * @param {string} url - YouTube video havolasi.
+ * @param {object} ctx - Telegraf kontekst obyekti.
+ */
+const downloadYouTubeVideo = async (url, ctx) => {
+  try {
+    const processingMsg = await ctx.reply("⏳ YouTube videoni yuklab olish boshlandi...")
+
+    // YouTube video ma'lumotlarini olish uchun RapidAPI dan foydalanish
+    const response = await axios.get("https://youtube-mp36.p.rapidapi.com/dl", {
+      params: { id: extractYouTubeId(url) },
+      headers: {
+        "X-RapidAPI-Key": "55c1142c8dmshe3642fb6859f937p104c2ejsnac67748d4751",
+        "X-RapidAPI-Host": "youtube-media-downloader.p.rapidapi.com",
+      },
+      timeout: 30000,
+    })
+
+    if (response.data && response.data.link) {
+      // Video linkini olish
+      const videoUrl = response.data.link
+
+      // Video hajmini tekshirish (Telegram 50MB limit)
+      const headResponse = await axios.head(videoUrl)
+      const contentLength = Number.parseInt(headResponse.headers["content-length"] || "0")
+
+      if (contentLength > 50 * 1024 * 1024) {
+        // 50MB
+        await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
+        return ctx.reply("❌ Video hajmi juda katta (50MB dan ortiq). Telegram cheklovlari tufayli yuborib bo'lmaydi.")
+      }
+
+      // Videoni yuborish
+      await ctx.replyWithVideo(videoUrl, {
+        caption: `🎬 ${response.data.title || "YouTube Video"}`,
+      })
+
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
+    } else {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
+      ctx.reply("❌ YouTube videoni yuklab bo'lmadi. Video mavjud emasligini tekshiring.")
+    }
+  } catch (error) {
+    console.error("YouTube xatosi:", error.message)
+
+    // Agar birinchi API ishlamasa, ikkinchi usulni sinab ko'rish
+    try {
+      await downloadYouTubeVideoAlternative(url, ctx)
+    } catch (altError) {
+      console.error("Alternative YouTube xatosi:", altError.message)
+      ctx.reply("❌ YouTube videoni yuklab bo'lmadi. Iltimos, keyinroq qayta urinib ko'ring.")
+    }
+  }
+}
+
+/**
+ * Muqobil YouTube yuklovchi (agar birinchisi ishlamasa)
+ */
+const downloadYouTubeVideoAlternative = async (url, ctx) => {
+  try {
+    const processingMsg = await ctx.reply("⏳ Muqobil usul bilan yuklab olish...")
+
+    const response = await axios.get("https://youtube-video-download1.p.rapidapi.com/dl", {
+      params: { id: extractYouTubeId(url) },
+      headers: {
+        "X-RapidAPI-Key": "55c1142c8dmshe3642fb6859f937p104c2ejsnac67748d4751",
+        "X-RapidAPI-Host": "youtube-video-download1.p.rapidapi.com",
+      },
+      timeout: 30000,
+    })
+
+    if (response.data && response.data.formats) {
+      // Eng yaxshi formatni tanlash
+      const format =
+        response.data.formats.find((f) => f.ext === "mp4" && f.filesize && f.filesize < 50 * 1024 * 1024) ||
+        response.data.formats[0]
+
+      if (format && format.url) {
+        await ctx.replyWithVideo(format.url, {
+          caption: `🎬 ${response.data.title || "YouTube Video"}`,
+        })
+        await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
+      } else {
+        throw new Error("Mos format topilmadi")
+      }
+    } else {
+      throw new Error("Video ma'lumotlari topilmadi")
+    }
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * YouTube URL dan video ID ni ajratib olish
  */
 const extractYouTubeId = (url) => {
   const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/
@@ -241,121 +337,9 @@ const extractYouTubeId = (url) => {
 }
 
 /**
- * Bepul YouTube API bilan video yuklab olish
- */
-const downloadYouTubeVideo = async (url, ctx) => {
-  try {
-    const processingMsg = await ctx.reply("⏳ YouTube videoni yuklab olish boshlandi...")
-
-    const videoId = extractYouTubeId(url)
-    if (!videoId) {
-      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
-      return ctx.reply("❌ YouTube video ID topilmadi.")
-    }
-
-    // 1-usul: Bepul YouTube downloader API
-    try {
-      const response = await axios.get(`https://api.cobalt.tools/api/json`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        data: {
-          url: url,
-          vQuality: "480",
-        },
-        timeout: 30000,
-      })
-
-      if (response.data && response.data.url) {
-        await ctx.replyWithVideo(response.data.url, {
-          caption: `🎬 YouTube Video`,
-        })
-        await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
-        return
-      }
-    } catch (error) {
-      console.log("Cobalt API xatosi:", error.message)
-    }
-
-    // 2-usul: Boshqa bepul API
-    try {
-      const response = await axios.post(
-        "https://www.klickaud.co/api/convert",
-        {
-          url: url,
-          format: "mp4",
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          },
-          timeout: 30000,
-        },
-      )
-
-      if (response.data && response.data.download_url) {
-        await ctx.replyWithVideo(response.data.download_url, {
-          caption: `🎬 YouTube Video`,
-        })
-        await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
-        return
-      }
-    } catch (error) {
-      console.log("Klickaud API xatosi:", error.message)
-    }
-
-    // 3-usul: YouTube video ma'lumotlarini olish va foydalanuvchiga link berish
-    try {
-      const videoInfo = await getYouTubeVideoInfo(videoId)
-      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
-
-      await ctx.replyWithHTML(
-        `🎬 <b>${videoInfo.title}</b>\n\n` +
-          `⏱ Davomiyligi: ${videoInfo.duration}\n` +
-          `👀 Ko'rishlar: ${videoInfo.views}\n\n` +
-          `📥 Video yuklab olish uchun quyidagi linkdan foydalaning:\n` +
-          `<a href="https://www.y2mate.com/youtube/${videoId}">Y2mate orqali yuklab olish</a>\n\n` +
-          `yoki\n\n` +
-          `<a href="https://ssyoutube.com/watch?v=${videoId}">SSYouTube orqali yuklab olish</a>`,
-      )
-    } catch (error) {
-      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
-      ctx.reply(
-        "❌ YouTube videoni yuklab bo'lmadi. Iltimos, quyidagi linkdan foydalaning:\n" +
-          `https://www.y2mate.com/youtube/${videoId}`,
-      )
-    }
-  } catch (error) {
-    console.error("YouTube xatosi:", error.message)
-    ctx.reply("❌ YouTube videoni yuklab bo'lmadi.")
-  }
-}
-
-/**
- * YouTube video ma'lumotlarini olish (bepul)
- */
-const getYouTubeVideoInfo = async (videoId) => {
-  try {
-    // YouTube oEmbed API (bepul va cheklovsiz)
-    const response = await axios.get(
-      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
-    )
-
-    return {
-      title: response.data.title,
-      duration: "N/A",
-      views: "N/A",
-    }
-  } catch (error) {
-    throw new Error("Video ma'lumotlarini olib bo'lmadi")
-  }
-}
-
-/**
- * TikTok videoni yuklab olish
+ * RapidAPI xizmati yordamida TikTok videoni yuklab oladi.
+ * @param {string} url - TikTok video havolasi.
+ * @param {object} ctx - Telegraf kontekst obyekti.
  */
 const downloadTikTokVideo = async (url, ctx) => {
   try {
@@ -376,8 +360,10 @@ const downloadTikTokVideo = async (url, ctx) => {
       timeout: 15000,
     })
 
+    // Javobdan video URLni ajratib olish
     const videoUrl = response.data?.data?.play || response.data?.data?.hdplay
     if (videoUrl && /^https?:\/\//.test(videoUrl)) {
+      // Videoni foydalanuvchiga yuborish
       await ctx.replyWithVideo(videoUrl)
       await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id)
     } else {
@@ -392,37 +378,43 @@ const downloadTikTokVideo = async (url, ctx) => {
 
 // --- Telegram Bot Buyruqlari ---
 
+// /start buyrug'ini qabul qilish
 bot.start((ctx) =>
   ctx.replyWithHTML(
     "🎬 <b>Video Yuklovchi Botga Xush Kelibsiz!</b>\n\n" +
       "📱 TikTok: <code>https://vm.tiktok.com/...</code>\n" +
       "📺 YouTube: <code>https://youtu.be/...</code>\n\n" +
-      "⚠️ <i>YouTube videolar uchun yuklab olish linklari beriladi</i>\n\n" +
       "Iltimos, video linkini yuboring.",
   ),
 )
 
+// /help buyrug'ini qabul qilish
 bot.help((ctx) =>
   ctx.replyWithHTML(
     "🤖 <b>Yordam</b>\n\n" +
-      "1. TikTok link yuboring - Bot videoni to'g'ridan-to'g'ri yuboradi\n" +
-      "2. YouTube link yuboring - Bot yuklab olish linkini beradi\n\n" +
-      "📝 <b>Qo'llab-quvvatlanadigan formatlar:</b>\n" +
-      "• TikTok: vm.tiktok.com, tiktok.com\n" +
-      "• YouTube: youtube.com, youtu.be",
+      "1. TikTok link yuboring\n" +
+      "2. YouTube link yuboring\n\n" +
+      "Bot sizga videoni yuboradi!",
   ),
 )
 
+// Barcha matn xabarlarini qabul qilish
 bot.on("text", async (ctx) => {
   const link = ctx.message.text.trim()
 
+  // '/' bilan boshlanadigan buyruqlarni e'tiborsiz qoldirish
   if (link.startsWith("/")) return
 
+  // Havola YouTube havolasi ekanligini tekshirish
   if (link.includes("youtube.com") || link.includes("youtu.be")) {
     await downloadYouTubeVideo(link, ctx)
-  } else if (link.includes("tiktok.com")) {
+  }
+  // Havola TikTok havolasi ekanligini tekshirish
+  else if (link.includes("tiktok.com")) {
     await downloadTikTokVideo(link, ctx)
-  } else {
+  }
+  // Agar ikkalasi ham bo'lmasa, foydalanuvchiga xabar berish
+  else {
     ctx.reply("❌ Faqat YouTube yoki TikTok linkini yuboring.")
   }
 })
@@ -441,26 +433,33 @@ const WEBHOOK_PATH = `/webhook/${bot.secretPathComponent()}`
 const PORT = process.env.PORT || 3000
 const WEBHOOK_URL = process.env.WEBHOOK_URL
 
+// Telegram webhook so'rovlarini tinglash
 app.use(bot.webhookCallback(WEBHOOK_PATH))
 
-app.get("/", (req, res) => res.send("Bot ishlayapti ✅"))
+// Serverni faol ushlab turish uchun oddiy endpoint
+app.get("/", (req, res) => res.send("Bot ishlayapti"))
+
+// Health check endpoint
 app.get("/health", (req, res) => res.json({ status: "OK", timestamp: new Date().toISOString() }))
 
 app.listen(PORT, async () => {
   console.log(`Server ishga tushdi: http://localhost:${PORT}`)
+  console.log(`WEBHOOK_URL qiymati: ${WEBHOOK_URL}`)
 
+  // Webhookni o'rnatish
   if (!WEBHOOK_URL) {
     console.error("Xato: WEBHOOK_URL muhit o'zgaruvchisi o'rnatilmagan.")
   } else {
     try {
-      await bot.telegram.setWebhook(`${WEBHOOK_URL}${WEBHOOK_PATH}`)
+      const webhookInfo = await bot.telegram.setWebhook(`${WEBHOOK_URL}${WEBHOOK_PATH}`)
       console.log(`Webhook o'rnatildi: ${WEBHOOK_URL}${WEBHOOK_PATH}`)
+      console.log("Webhook o'rnatish natijasi:", webhookInfo)
     } catch (error) {
       console.error("Webhook o'rnatishda xato:", error)
     }
   }
 })
 
+// Botni to'xtatish uchun signallarni yoqish
 process.once("SIGINT", () => bot.stop("SIGINT"))
 process.once("SIGTERM", () => bot.stop("SIGTERM"))
-
