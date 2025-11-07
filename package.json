@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node bot.js",
+    "test": "npx playwright test"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +15,8 @@
     "dotenv": "^17.1.0",
     "express": "^5.1.0",
     "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0"
   }
 }
