@@ -1,0 +1,6 @@
+- [x] Examine current bot.js implementation
+- [x] Examine youtube.js for video/audio handling
+- [x] Fix 1080p video download and send directly from bot
+- [x] Fix audio functionality to work properly
+- [ ] Test the implementation
+- [ ] Verify results
