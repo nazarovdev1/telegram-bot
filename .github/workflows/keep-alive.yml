@@ -13,20 +13,20 @@ jobs:
     steps:
     - name: Ping Bot Health Endpoint
       run: |
-        curl -f -X GET "YOUR_BOT_URL_HERE/health" || \
+        curl -f -X GET "https://telegram-bot-1-r3gl.onrender.com/health" || \
         echo "Health endpoint failed, trying /ping endpoint..."
         
     - name: Ping Bot Ping Endpoint  
       run: |
-        curl -f -X GET "YOUR_BOT_URL_HERE/ping" || \
+        curl -f -X GET "https://telegram-bot-1-r3gl.onrender.com/ping" || \
         echo "Ping endpoint failed, trying /keep-alive endpoint..."
         
     - name: Ping Bot Keep-Alive Endpoint
       run: |
-        curl -f -X GET "YOUR_BOT_URL_HERE/keep-alive" || \
+        curl -f -X GET "https://telegram-bot-1-r3gl.onrender.com/keep-alive" || \
         echo "Keep-alive endpoint failed, trying /status endpoint..."
         
     - name: Ping Bot Status Endpoint
       run: |
-        curl -f -X GET "YOUR_BOT_URL_HERE/status" || \
+        curl -f -X GET "https://telegram-bot-1-r3gl.onrender.com/status" || \
         echo "All endpoints failed - bot may be down"
