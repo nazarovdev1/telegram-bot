@@ -76,20 +76,30 @@ const downloadInstagramVideo = async (url, ctx) => {
 
     const processingMsg = await ctx.reply("⏳ Instagram videoni yuklab olish boshlandi...")
 
-    // Sizning belgilagan API ni ishlatamiz
-    const response = await axios.get("https://instagram-reels-downloader2.p.rapidapi.com/download", {
-      params: { url: url, type: "video" },
+    // Oddiy parameter bilan sinash - 500 xatosiga sabab long param nomi
+    const response = await axios.get("https://instagram-reels-downloader-api.p.rapidapi.com/download", {
+      params: { url: url },
       headers: {
         "X-RapidAPI-Key": process.env.RAPIDAPI_INSTAGRAM_KEY,
-        "X-RapidAPI-Host": "instagram-reels-downloader2.p.rapidapi.com",
+        "X-RapidAPI-Host": "instagram-reels-downloader-api.p.rapidapi.com",
       },
       timeout: 20000,
     })
 
     console.log("Instagram API javob:", JSON.stringify(response.data, null, 2))
 
-    // Video URL ni topish
-    const videoUrl = response.data?.url || response.data?.download_url || response.data?.video_url
+    // Video URL ni topish - yangi API format bo'yicha
+    let videoUrl = null;
+
+    // API ning success formatga qarab URL topish
+    if (response.data?.data?.medias && response.data.data.medias.length > 0) {
+      // Video URL topish (type: 'video' bo'lganini)
+      const videoMedia = response.data.data.medias.find(media => media.type === 'video')
+      videoUrl = videoMedia ? videoMedia.url : response.data.data.medias[0].url
+    } else {
+      // Eski format uchun fallback
+      videoUrl = response.data?.url || response.data?.download_url || response.data?.video_url
+    }
 
     if (videoUrl && /^https?:\/\//.test(videoUrl)) {
       // Video haqida ma'lumot olish
