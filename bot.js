@@ -633,7 +633,7 @@ bot.on("text", async (ctx) => {
   } else if (link.includes("tiktok.com")) {
     await downloadTikTokVideo(link, ctx)
   } else if (link.includes("instagram.com") || link.includes("instagr.am")) {
-    await require("./instagram").downloadInstagramVideo(link, ctx, isHosting)
+    await require("./instagram").downloadInstagramVideo(link, ctx)
   } else {
     ctx.reply("❌ Faqat YouTube, TikTok yoki Instagram linkini yuboring.")
   }
