@@ -40,6 +40,10 @@ let botStartTime = Date.now()
 let lastActivityTime = Date.now()
 let isActive = true
 
+// User tracking va statistika
+let activeUsers = new Set()
+let totalDownloads = { tiktok: 0, youtube: 0, instagram: 0, total: 0 }
+
 // Uptime monitoring
 const getUptime = () => {
   const uptime = Date.now() - botStartTime
@@ -586,13 +590,37 @@ bot.help((ctx) => {
       "2. YouTube link yuboring - Sifat tanlash tugmalari chiqadi\n\n" +
       "📝 <b>Qo'llab-quvvatlanadigan formatlar:</b>\n" +
       "• TikTok: vm.tiktok.com, tiktok.com\n" +
-      "• YouTube: youtube.com, youtu.be\n\n" +
+      "• YouTube: youtube.com, youtu.be\n" +
+      "• Instagram: instagram.com/reel/...\n\n" +
       "🎛️ <b>Sifatlar:</b> 144p, 240p, 360p, 480p, 720p, 1080p, Audio\n\n" +
       "📱 <b>Yangilangan xususiyatlar:</b>\n" +
       `• ${isHosting ? 'Hosting uchun optimizatsiya qilingan' : 'To\'g\'ridan-to\'g\'ri yuklab olish'}\n` +
       "• Audio tugmasi ham audio fayl yuboradi\n" +
       "• Keep-alive tizimi\n" +
-      `• ${isHosting ? 'Hosting environment detected' : 'Local environment'}`,
+      `• ${isHosting ? 'Hosting environment detected' : 'Local environment'}\n` +
+      "• /show - Bot statistikalarini ko'rish",
+  )
+})
+
+// /show - Bot statistikalarini ko'rsatish
+bot.command('show', (ctx) => {
+  updateActivity()
+
+  // User ni active user sifatida qo'shish
+  if (ctx.from) {
+    activeUsers.add(ctx.from.id)
+  }
+
+  const uptime = getUptime()
+  ctx.replyWithHTML(
+    `📊 <b>Bot Statistikalari</b>\n\n` +
+    `👥 Faol foydalanuvchilar: <code>${activeUsers.size}</code>\n` +
+    `📥 Jami yuklab olishlar: <code>${totalDownloads.total}</code>\n` +
+    `🎬 TikTok: <code>${totalDownloads.tiktok}</code>\n` +
+    `📺 YouTube: <code>${totalDownloads.youtube}</code>\n` +
+    `📸 Instagram: <code>${totalDownloads.instagram}</code>\n\n` +
+    `⏱ Bot vaqti: <code>${uptime.hours}s ${uptime.minutes}m ${uptime.seconds}s</code>\n` +
+    `🌐 Muammo: <code>${isHosting ? 'Hosting' : 'Local'}</code>`,
   )
 })
 
@@ -600,9 +628,18 @@ bot.on("text", async (ctx) => {
   const link = ctx.message.text.trim()
   updateActivity()
 
+  // User tracking - active user qo'shish
+  if (ctx.from) {
+    activeUsers.add(ctx.from.id)
+  }
+
   if (link.startsWith("/")) return
 
   if (link.includes("youtube.com") || link.includes("youtu.be")) {
+    // YouTube statistikasi
+    totalDownloads.youtube++
+    totalDownloads.total++
+
     const processingMsg = await ctx.reply("⏳ Video ma'lumotlarini olish...")
 
     try {
@@ -631,8 +668,16 @@ bot.on("text", async (ctx) => {
       ctx.reply("❌ Video ma'lumotlarini olishda xato yuz berdi.")
     }
   } else if (link.includes("tiktok.com")) {
+    // TikTok statistikasi
+    totalDownloads.tiktok++
+    totalDownloads.total++
+
     await downloadTikTokVideo(link, ctx)
   } else if (link.includes("instagram.com") || link.includes("instagr.am")) {
+    // Instagram statistikasi
+    totalDownloads.instagram++
+    totalDownloads.total++
+
     await require("./instagram").downloadInstagramVideo(link, ctx)
   } else {
     ctx.reply("❌ Faqat YouTube, TikTok yoki Instagram linkini yuboring.")
