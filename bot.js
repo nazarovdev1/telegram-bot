@@ -189,7 +189,7 @@ const downloadTikTokVideo = async (url, ctx) => {
     const response = await axios.get("https://tiktok-video-no-watermark2.p.rapidapi.com/", {
       params: { url, hd: 1 },
       headers: {
-        "X-RapidAPI-Key": "55c1142c8dmshe3642fb6859f937p104c2ejsnac67748d4751",
+        "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
         "X-RapidAPI-Host": "tiktok-video-no-watermark2.p.rapidapi.com",
       },
       timeout: isHosting ? 15000 : 20000, // Shorter timeout for hosting
@@ -573,13 +573,8 @@ const downloadYouTubeVideoByQuality = async (url, quality, ctx) => {
 
 bot.start((ctx) => {
   updateActivity()
-  ctx.replyWithHTML(
-    `🎬 <b>Video Yuklovchi Botga Xush Kelibsiz!</b>\n\n` +
-      `📱 TikTok: <code>https://vm.tiktok.com/...</code>\n` +
-      `📺 YouTube: <code>https://youtu.be/...</code>\n\n` +
-      `⚠️ <i>YouTube videolar uchun sifat tanlash tugmalari chiqadi</i>\n\n` +
-      `Iltimos, video linkini yuboring.\n\n` +
-      `🕐 <i>${isHosting ? 'Hosting uchun optimizatsiya qilingan' : 'Lokal muhit'}</i>`,
+  ctx.reply(
+    `🎬 Video Yuklovchi Botga Xush Kelibsiz!\n\n📱 TikTok: https://vm.tiktok.com/...\n📺 YouTube: https://youtu.be/...\n📸 Instagram: https://instagram.com/reel/...\n\nIltimos, video linkini yuboring.`
   )
 })
 
